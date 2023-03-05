@@ -451,16 +451,16 @@
 
                 // Keyboard navigation handlers
                 // 33: pg up, 37: left, 38: up
-                registerKeyEvent( [ "PageUp", "ArrowLeft", "ArrowUp" ], window.impress().prev );
+                registerKeyEvent( [ 'PageUp', 'ArrowLeft', 'ArrowUp' ], window.impress().prev );
 
                 // 34: pg down, 39: right, 40: down
-                registerKeyEvent( [ "PageDown", "ArrowRight", "ArrowDown" ], window.impress().next );
+                registerKeyEvent( [ 'PageDown', 'ArrowRight', 'ArrowDown' ], window.impress().next );
 
                 // 32: space
-                registerKeyEvent( [ "Space" ], spaceHandler );
+                registerKeyEvent( [ 'Space' ], spaceHandler );
 
                 // 82: R
-                registerKeyEvent( [ "KeyR" ], timerReset );
+                registerKeyEvent( [ 'KeyR' ], timerReset );
 
                 // Cleanup
                 consoleWindow.onbeforeunload = function() {
@@ -565,7 +565,7 @@
             };
 
             //Open speaker console when they press 'p'
-            registerKeyEvent( [ "KeyP" ], open, window );
+            registerKeyEvent( [ 'KeyP' ], open, window );
 
             //Btw, you can also launch console automatically:
             //<div id="impress" data-console-autolaunch="true">

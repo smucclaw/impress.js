@@ -594,12 +594,12 @@
         /**
          * Register a key code to an event handler
          *
-         * :param: event.detail.keys        List of keys
+         * :param: event.detail.keyCodes    List of codes
          * :param: event.detail.handler     A function registered as the event handler
          * :param: event.detail.window      The console window to register the keycode in
          */
         root.addEventListener( 'impress:console:registerKeyEvent', function( event ) {
-            registerKeyEvent( event.detail.keys, event.detail.handler, event.detail.window );
+            registerKeyEvent( event.detail.keyCodes, event.detail.handler, event.detail.window );
         } );
 
         // Return the object

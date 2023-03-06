@@ -8,7 +8,7 @@
  * in modern browsers and inspired by the idea behind prezi.com.
  *
  *
- * Copyright 2011-2012 Bartek Szopka (@bartaz), 2016-2023 Henrik Ingo (@henrikingo) 
+ * Copyright 2011-2012 Bartek Szopka (@bartaz), 2016-2023 Henrik Ingo (@henrikingo)
  * and 70+ other contributors
  *
  * Released under the MIT License.
@@ -1986,7 +1986,7 @@
         gc.addEventListener( document, "keydown", function( event ) {
 
             // Accept b or . -> . is sent by presentation remote controllers
-            if ( event.keyCode === 66 || event.keyCode === 190 ) {
+            if ( [ "KeyB", "Period" ].includes( event.code ) ) {
                 event.preventDefault();
                 if ( !blackedOut ) {
                     blackout();
@@ -1999,7 +1999,7 @@
         gc.addEventListener( document, "keyup", function( event ) {
 
             // Accept b or . -> . is sent by presentation remote controllers
-            if ( event.keyCode === 66 || event.keyCode === 190 ) {
+            if ( [ "KeyB", "Period" ].includes( event.code ) ) {
                 event.preventDefault();
             }
         }, false );
@@ -2316,7 +2316,7 @@
 
                 // Don't return, allow the other categories to work despite this error
             } else {
-                var index = keylist.indexOf( event.origEvent.key );
+                var index = keylist.indexOf( event.origEvent.code );
                 if ( index >= 0 ) {
                     var next = nextlist[ index ];
                     if ( isNumber( next ) ) {
@@ -2429,6 +2429,78 @@
 
 
 /**
+ * Bookmark Plugin
+ *
+ * The bookmark plugin consists of
+ *   a pre-init plugin,
+ *   a keyup listener, and
+ *   a pre-stepleave plugin.
+ *
+ * The pre-init plugin surveys all step divs to set up bookmark keybindings.
+ * The pre-stepleave plugin alters the destination when a bookmark hotkey is pressed.
+ *
+ * Example:
+ *
+ *       <!-- data-bookmark-key-list allows an "inbound" style of non-linear navigation. -->
+ *       <div id="..." class="step" data-bookmark-key-list="Digit1 KeyA 1 2 3 a b c">
+ *
+ * See https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values for a table
+ * of what strings to use for each key. Both .key and .code styles are recognized.
+ *
+ * It's up to the HTML author to avoid reserved hotkeys H, B, P, ? etc.
+ *
+ * Copyright 2016-2017 Henrik Ingo (@henrikingo)
+ * Released under the MIT license.
+ */
+/* global document, impress */
+
+( function( document ) {
+    "use strict";
+    var hotkeys = {};
+    function hotkeyDest( event ) {
+	return ( hotkeys.hasOwnProperty( event.key )  ? hotkeys[ event.key ] :
+		 hotkeys.hasOwnProperty( event.code ) ? hotkeys[ event.code ] : null ); }
+
+    // In pre-init phase, build a map of bookmark hotkey to div id, by reviewing all steps
+    impress.addPreInitPlugin( function( root, api ) {
+	root.querySelectorAll( ".step" ).forEach( function( div ) {
+            if ( div.dataset.bookmarkKeyList !== undefined && div.id !== undefined ) {
+		div.dataset.bookmarkKeyList.split( " " ).forEach( ( k ) => {
+		    if ( hotkeys.hasOwnProperty( k ) ) {
+			hotkeys[ k ].push( div.id );
+		    } else {
+			hotkeys[ k ] = [ div.id ]; } } ); } } );
+
+	api.lib.gc.addEventListener( document, "keyup", function( event ) {
+	    if ( hotkeyDest( event ) !== undefined ) {
+		event.stopImmediatePropagation();
+		api.next( event );
+
+		Event.preventDefault();
+	    } } ); } );
+
+    // In pre-stepleave phase, match a hotkey and reset destination accordingly.
+    impress.addPreStepLeavePlugin( function( event ) {
+
+	// Window.console.log(`bookmark: running as PreStepLeavePlugin; event=`);
+	// window.console.log(event)
+        if ( ( !event || !event.origEvent ) ) { return; }
+	var dest = hotkeyDest( event.origEvent );
+        if ( dest ) {
+
+	    // Window.console.log(`bookmark: recognizing hotkey ${event.code} goes to ${dest}`)
+            var newTarget = document.getElementById( dest[ 0 ] ); // jshint ignore:line
+            if ( newTarget ) {
+                event.detail.next = newTarget;
+		dest.push( dest.shift() ); // Repeated hotkey presses cycle through each dest.
+            }
+        }
+    } );
+
+} )( document );
+
+
+/**
  * Help popup plugin
  *
  * Example:
@@ -2488,7 +2560,8 @@
 
     document.addEventListener( "keyup", function( event ) {
 
-        if ( event.keyCode === 72 || event.keyCode === 191 ) { // "h" || "?"
+	// "h" || "?" // but this seems brittle, what about keyboards that don't have / ? together?
+        if ( [ "KeyH", "Slash" ].includes( event.code ) ) {
             event.preventDefault();
             toggleHelp();
         }
@@ -2864,7 +2937,7 @@
             }
         };
 
-        var registerKeyEvent = function( keyCodes, handler, window ) {
+        var registerKeyEvent = function( keys, handler, window ) {
             if ( window === undefined ) {
                 window = consoleWindow;
             }
@@ -2872,7 +2945,7 @@
             // Prevent default keydown action when one of supported key is pressed
             window.document.addEventListener( 'keydown', function( event ) {
                 if ( !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey &&
-                     keyCodes.indexOf( event.keyCode ) !== -1 ) {
+                     keys.includes( event.code ) ) {
                     event.preventDefault();
                 }
             }, false );
@@ -2880,7 +2953,7 @@
             // Trigger impress action on keyup
             window.document.addEventListener( 'keyup', function( event ) {
                 if ( !event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey &&
-                     keyCodes.indexOf( event.keyCode ) !== -1 ) {
+                     keys.includes( event.code ) ) {
                         handler();
                         event.preventDefault();
                 }
@@ -3001,16 +3074,18 @@
 
                 // Keyboard navigation handlers
                 // 33: pg up, 37: left, 38: up
-                registerKeyEvent( [ 33, 37, 38 ], window.impress().prev );
+                registerKeyEvent( [ 'PageUp', 'ArrowLeft', 'ArrowUp' ],
+				  window.impress().prev );
 
                 // 34: pg down, 39: right, 40: down
-                registerKeyEvent( [ 34, 39, 40 ], window.impress().next );
+                registerKeyEvent( [ 'PageDown', 'ArrowRight', 'ArrowDown' ],
+				  window.impress().next );
 
                 // 32: space
-                registerKeyEvent( [ 32 ], spaceHandler );
+                registerKeyEvent( [ 'Space' ], spaceHandler );
 
                 // 82: R
-                registerKeyEvent( [ 82 ], timerReset );
+                registerKeyEvent( [ 'KeyR' ], timerReset );
 
                 // Cleanup
                 consoleWindow.onbeforeunload = function() {
@@ -3115,7 +3190,7 @@
             };
 
             //Open speaker console when they press 'p'
-            registerKeyEvent( [ 80 ], open, window );
+            registerKeyEvent( [ 'KeyP' ], open, window );
 
             //Btw, you can also launch console automatically:
             //<div id="impress" data-console-autolaunch="true">
@@ -3142,7 +3217,7 @@
         /**
          * Register a key code to an event handler
          *
-         * :param: event.detail.keyCodes    List of key codes
+         * :param: event.detail.keyCodes    List of codes
          * :param: event.detail.handler     A function registered as the event handler
          * :param: event.detail.window      The console window to register the keycode in
          */
@@ -3783,7 +3858,7 @@
 
             // In the case of TAB, we force step navigation always, overriding the browser
             // navigation between input elements, buttons and links.
-            if ( event.keyCode === 9 ) {
+            if ( event.code === "Tab" ) {
                 return true;
             }
 
@@ -3792,8 +3867,8 @@
                 return false;
             }
 
-            if ( ( event.keyCode >= 32 && event.keyCode <= 34 ) ||
-                 ( event.keyCode >= 37 && event.keyCode <= 40 ) ) {
+            if ( "Space PageUp PageDown ArrowLeft ArrowRight ArrowUp ArrowDown"
+		 .split( " " ).includes( event.code ) ) {
                 return true;
             }
         };
@@ -3811,25 +3886,21 @@
         gc.addEventListener( document, "keyup", function( event ) {
             if ( isNavigationEvent( event ) ) {
                 if ( event.shiftKey ) {
-                    switch ( event.keyCode ) {
-                        case 9: // Shift+tab
+                    switch ( event.code ) {
+                        case "Tab": // Shift+tab
                             api.prev();
                             break;
                     }
                 } else {
-                    switch ( event.keyCode ) {
-                        case 33: // Pg up
-                        case 37: // Left
-                        case 38: // Up
-                                 api.prev( event );
-                                 break;
-                        case 9:  // Tab
-                        case 32: // Space
-                        case 34: // Pg down
-                        case 39: // Right
-                        case 40: // Down
-                                 api.next( event );
-                                 break;
+                    switch ( event.code ) {
+                    case "PageUp":
+                    case "ArrowLeft":
+                    case "ArrowUp": api.prev( event ); break;
+                    case "Tab":
+                    case "Space":
+                    case "PageDown":
+                    case "ArrowRight":
+                    case "ArrowDown": api.next( event ); break;
                     }
                 }
                 event.preventDefault();

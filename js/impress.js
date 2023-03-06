@@ -2462,6 +2462,8 @@
 		 hotkeys.hasOwnProperty( event.code ) ? hotkeys[ event.code ] : null ); }
 
     // In pre-init phase, build a map of bookmark hotkey to div id, by reviewing all steps
+    // [TODO] mvoe this to slightly later in the init so that step-N ids get imputed to divs without them.
+    // right now we don't cope well with divs that don't have .id
     impress.addPreInitPlugin( function( root, api ) {
 	root.querySelectorAll( ".step" ).forEach( function( div ) {
             if ( div.dataset.bookmarkKeyList !== undefined && div.id !== undefined ) {
@@ -2476,19 +2478,14 @@
 		event.stopImmediatePropagation();
 		api.next( event );
 
-		Event.preventDefault();
+		// Event.preventDefault();
 	    } } ); } );
 
     // In pre-stepleave phase, match a hotkey and reset destination accordingly.
     impress.addPreStepLeavePlugin( function( event ) {
-
-	// Window.console.log(`bookmark: running as PreStepLeavePlugin; event=`);
-	// window.console.log(event)
         if ( ( !event || !event.origEvent ) ) { return; }
 	var dest = hotkeyDest( event.origEvent );
         if ( dest ) {
-
-	    // Window.console.log(`bookmark: recognizing hotkey ${event.code} goes to ${dest}`)
             var newTarget = document.getElementById( dest[ 0 ] ); // jshint ignore:line
             if ( newTarget ) {
                 event.detail.next = newTarget;

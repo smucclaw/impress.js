@@ -287,9 +287,12 @@
                         z: lib.util.toNumberAdvanced( data.z )
                     },
                     rotate: {
-                        x: lib.util.toNumber( data.rotateX ),
-                        y: lib.util.toNumber( data.rotateY ),
-                        z: lib.util.toNumber( data.rotateZ || data.rotate ),
+//                         x: lib.util.toNumber( data.rotateX ),
+//                         y: lib.util.toNumber( data.rotateY ),
+//                         z: lib.util.toNumber( data.rotateZ || data.rotate ),
+                        x: 0,
+                        y: 0,
+                        z: 0,
                         order: validateOrder( data.rotateOrder )
                     },
                     scale: lib.util.toNumber( data.scale, 1 ),
